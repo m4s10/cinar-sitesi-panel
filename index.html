@@ -378,21 +378,69 @@ const HV_KATS = [
 ];
 const GD_LABEL = {personel:'Personel', kimyasal:'Kimyasal', ekipman:'Ekipman', elektrik:'Elektrik/Su', bakim:'Bakım/Tamir', diger:'Diğer'};
 
-const BASLANGIC_AIDATLAR = [];
+// (Başlangıç verileri Google Sheets üzerinden gelir)
+
+const API_URL = 'https://script.google.com/macros/s/AKfycbz5u3RNg3UFwdiOv5IROpr9c5zdX3UCt553CBAu2QIlbvsuWimY2gRk1rgXUFKyrt-76g/exec';
 
 let S = { aidatlar:[], havuz:[], giderler:[], secilenAy:null };
 let kismiHedefId = null;
 let kismiHedefAy = null;
 
-function load() {
-  try { const x = localStorage.getItem('cinar_v3'); if (x) S = JSON.parse(x); } catch(e) {}
-  if (!S.aidatlar || !S.aidatlar.length) S.aidatlar = JSON.parse(JSON.stringify(BASLANGIC_AIDATLAR));
-  if (!S.havuz) S.havuz = [];
-  if (!S.giderler) S.giderler = [];
+async function load() {
+  showSyncStatus('Veriler yükleniyor...');
+  try {
+    const res = await fetch(API_URL);
+    const data = await res.json();
+    S.aidatlar = (data.aidatlar || []).map(a => ({
+      id: a.id, adi: a.adi, kat: a.kat, tutar: Number(a.tutar), odenenTutar: a.odenenTutar || {}
+    }));
+    S.havuz = (data.havuz || []).map(h => ({
+      id: h.id, tarih: h.tarih, gt: h.gt, kisi: Number(h.kisi), tutar: Number(h.tutar), not: h.not || ''
+    })).sort((a,b) => String(b.id).localeCompare(String(a.id)));
+    S.giderler = (data.giderler || []).map(g => ({
+      id: g.id, tarih: g.tarih, kat: g.kat, tutar: Number(g.tutar), aciklama: g.aciklama || ''
+    })).sort((a,b) => String(b.id).localeCompare(String(a.id)));
+    hideSyncStatus();
+  } catch (e) {
+    hideSyncStatus();
+    toast('Bağlantı hatası — internet bağlantını kontrol et');
+  }
   const now = new Date();
   if (!S.secilenAy) S.secilenAy = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
 }
-function save() { try { localStorage.setItem('cinar_v3', JSON.stringify(S)); } catch(e) {} }
+
+async function apiCall(action, payload) {
+  showSyncStatus('Kaydediliyor...');
+  try {
+    await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action, ...payload })
+    });
+    hideSyncStatus();
+    return true;
+  } catch (e) {
+    hideSyncStatus();
+    toast('Kaydedilemedi — bağlantı sorunu, tekrar dene');
+    return false;
+  }
+}
+
+function showSyncStatus(msg) {
+  let el = document.getElementById('sync-status');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'sync-status';
+    el.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#4361ee;color:#fff;font-size:12px;text-align:center;padding:5px;z-index:9998;';
+    document.body.prepend(el);
+  }
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+function hideSyncStatus() {
+  const el = document.getElementById('sync-status');
+  if (el) el.style.display = 'none';
+}
 function toast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg; t.classList.add('show');
@@ -401,11 +449,12 @@ function toast(msg) {
 function fmt(n) { return Number(n).toLocaleString('tr-TR') + ' TL'; }
 function ayLabel(k) { const [y,m] = k.split('-'); return AYLAR[parseInt(m)-1] + ' ' + y; }
 
-function goTab(tab, btn) {
+async function goTab(tab, btn) {
   document.querySelectorAll('.sec').forEach(s => s.classList.remove('on'));
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('on'));
   document.getElementById('sec-' + tab).classList.add('on');
   btn.classList.add('on');
+  await load();
   if (tab==='ozet') renderOzet();
   if (tab==='aidat') renderAidat();
   if (tab==='havuz') renderHavuz();
@@ -527,16 +576,17 @@ function renderAidat() {
       </div>`;
     });
   });
-  document.getElementById('aidat-liste').innerHTML = html || '<div class="empty">Henüz birim eklenmedi.<br>Aşağıdan blok veya işyeri ekleyerek başla.</div>';
+  document.getElementById('aidat-liste').innerHTML = html;
 }
 
-function aidatOde(id, ay) {
+async function aidatOde(id, ay) {
   const a = S.aidatlar.find(x=>x.id===id);
   if (!a) return;
   if (!a.odenenTutar) a.odenenTutar = {};
   a.odenenTutar[ay] = a.tutar;
-  save(); renderAidat(); renderOzet();
-  toast(a.adi + ' — tam ödeme alındı');
+  renderAidat(); renderOzet();
+  const ok = await apiCall('aidat_ode', { id: a.id, ay, tutar: a.tutar });
+  if (ok) toast(a.adi + ' — tam ödeme alındı');
 }
 
 function openKismi(id, ay, ad) {
@@ -549,28 +599,32 @@ function openKismi(id, ay, ad) {
 }
 function closeModal() { document.getElementById('kismi-modal').classList.remove('open'); }
 
-function kismiOdemeKaydet() {
+async function kismiOdemeKaydet() {
   const tutar = parseFloat(document.getElementById('kismi-tutar').value);
   if (!tutar || tutar <= 0) { toast('Tutar gir'); return; }
   const a = S.aidatlar.find(x=>x.id===kismiHedefId);
   if (!a) return;
   if (!a.odenenTutar) a.odenenTutar = {};
   const mevcut = a.odenenTutar[kismiHedefAy] || 0;
-  a.odenenTutar[kismiHedefAy] = mevcut + tutar;
-  save(); closeModal(); renderAidat(); renderOzet();
-  toast(a.adi + ' — ' + fmt(tutar) + ' eklendi');
+  const yeniToplam = mevcut + tutar;
+  a.odenenTutar[kismiHedefAy] = yeniToplam;
+  closeModal(); renderAidat(); renderOzet();
+  const ok = await apiCall('aidat_ode', { id: a.id, ay: kismiHedefAy, tutar: yeniToplam });
+  if (ok) toast(a.adi + ' — ' + fmt(tutar) + ' eklendi');
 }
 
-function yeniBirimEkle() {
+async function yeniBirimEkle() {
   const ad = document.getElementById('yb-ad').value.trim();
   const kat = document.getElementById('yb-kat').value;
   const tutar = parseFloat(document.getElementById('yb-tutar').value)||0;
   if (!ad || tutar <= 0) { toast('Ad ve tutar zorunlu'); return; }
-  S.aidatlar.push({id:Date.now(), adi:ad, kat, tutar, odenenTutar:{}});
-  save(); renderAidat();
+  const id = Date.now();
+  S.aidatlar.push({id, adi:ad, kat, tutar, odenenTutar:{}});
+  renderAidat();
   document.getElementById('yb-ad').value = '';
   document.getElementById('yb-tutar').value = '';
-  toast(ad + ' eklendi');
+  const ok = await apiCall('aidat_ekle', { id, adi: ad, kat, tutar });
+  if (ok) toast(ad + ' eklendi');
 }
 
 // ── HAVUZ ──
@@ -602,7 +656,7 @@ function updateHvTop() {
 }
 document.getElementById('hv-gt').addEventListener('change', buildHvTable);
 
-function havuzKaydet() {
+async function havuzKaydet() {
   const tarih = document.getElementById('hv-tarih').value;
   if (!tarih) { toast('Tarih seç'); return; }
   const gt = document.getElementById('hv-gt').value;
@@ -612,12 +666,15 @@ function havuzKaydet() {
     tk += k; tt += k * UCRETLER[gt][kat.k];
   });
   if (tk === 0) { toast('En az 1 kişi gir'); return; }
-  S.havuz.unshift({id:Date.now(), tarih, gt, kisi:tk, tutar:tt, not:document.getElementById('hv-not').value});
-  save(); renderHavuz(); renderOzet();
+  const id = Date.now();
+  const not = document.getElementById('hv-not').value;
+  S.havuz.unshift({id, tarih, gt, kisi:tk, tutar:tt, not});
+  renderHavuz(); renderOzet();
   HV_KATS.forEach(kat => { document.getElementById('hk-'+kat.k).value = 0; });
   updateHvTop();
   document.getElementById('hv-not').value = '';
-  toast('Kaydedildi — ' + fmt(tt));
+  const ok = await apiCall('havuz_ekle', { id, tarih, gt, kisi: tk, tutar: tt, not });
+  if (ok) toast('Kaydedildi — ' + fmt(tt));
 }
 
 function renderHavuz() {
@@ -631,17 +688,19 @@ function renderHavuz() {
 }
 
 // ── GİDER ──
-function giderKaydet() {
+async function giderKaydet() {
   const tarih = document.getElementById('gd-tarih').value;
   const kat = document.getElementById('gd-kat').value;
   const tutar = parseFloat(document.getElementById('gd-tutar').value)||0;
   const aciklama = document.getElementById('gd-aciklama').value;
   if (!tarih || tutar <= 0) { toast('Tarih ve tutar zorunlu'); return; }
-  S.giderler.unshift({id:Date.now(), tarih, kat, tutar, aciklama});
-  save(); renderGider(); renderOzet();
+  const id = Date.now();
+  S.giderler.unshift({id, tarih, kat, tutar, aciklama});
+  renderGider(); renderOzet();
   document.getElementById('gd-tutar').value = '';
   document.getElementById('gd-aciklama').value = '';
-  toast('Gider kaydedildi — ' + fmt(tutar));
+  const ok = await apiCall('gider_ekle', { id, tarih, kat, tutar, aciklama });
+  if (ok) toast('Gider kaydedildi — ' + fmt(tutar));
 }
 
 function renderGider() {
@@ -684,10 +743,13 @@ function renderRapor() {
 }
 
 // ── INIT ──
-load();
-initHeader();
-buildHvTable();
-renderOzet();
+async function initApp() {
+  initHeader();
+  buildHvTable();
+  await load();
+  renderOzet();
+}
+initApp();
 </script>
 </body>
 </html>
