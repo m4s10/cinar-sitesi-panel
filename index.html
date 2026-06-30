@@ -387,10 +387,18 @@ const GD_LABEL = {personel:'Personel', kimyasal:'Kimyasal', ekipman:'Ekipman', e
 const API_URL = 'https://script.google.com/macros/s/AKfycbzbjw8dvvP3h5ddd9b4qFOcqH__27AsWld5cOXzkt1hsqu8nL0CiKycEvwsoj38x81T/exec';
 
 let S = { aidatlar:[], havuz:[], giderler:[], secilenAy:null };
+let pendingWrites = 0;
 let kismiHedefId = null;
 let kismiHedefAy = null;
 
 async function load() {
+  // Hâlâ devam eden bir kayıt işlemi varsa, bitene kadar bekle.
+  // Yoksa eski veri Sheets'ten çekilip yeni yapılan değişikliğin üzerine yazılabilir.
+  let waited = 0;
+  while (pendingWrites > 0 && waited < 5000) {
+    await new Promise(r => setTimeout(r, 150));
+    waited += 150;
+  }
   showSyncStatus('Veriler yükleniyor...');
   try {
     const res = await fetch(API_URL);
@@ -414,6 +422,7 @@ async function load() {
 }
 
 async function apiCall(action, payload) {
+  pendingWrites++;
   showSyncStatus('Kaydediliyor...');
   try {
     await fetch(API_URL, {
@@ -421,9 +430,11 @@ async function apiCall(action, payload) {
       headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify({ action, ...payload })
     });
+    pendingWrites--;
     hideSyncStatus();
     return true;
   } catch (e) {
+    pendingWrites--;
     hideSyncStatus();
     toast('Kaydedilemedi — bağlantı sorunu, tekrar dene');
     return false;
