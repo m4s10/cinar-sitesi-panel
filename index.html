@@ -117,7 +117,7 @@
   /* AIDAT TABLE */
   .aidat-list { }
   .aidat-cat { font-size: 10px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: .07em; padding: 10px 0 6px; border-bottom: 1px solid var(--border); }
-  .aidat-row { display: flex; align-items: center; gap: 10px; padding: 11px 0; border-bottom: 1px solid var(--border); }
+  .aidat-row { position: relative; display: flex; align-items: center; gap: 10px; padding: 11px 28px 11px 0; border-bottom: 1px solid var(--border); }
   .aidat-row:last-child { border-bottom: none; }
   .aidat-info { flex: 1; }
   .aidat-ad { font-size: 14px; font-weight: 500; color: var(--text); }
@@ -127,6 +127,10 @@
   .ode-btn:active { background: var(--green-bg); }
   .ode-btn.done { background: var(--green-bg); border-color: var(--green-bg); color: var(--green-text); cursor: default; }
   .kismi-btn { font-size: 11px; padding: 4px 10px; border-radius: 99px; border: 1.5px solid var(--amber); background: none; color: var(--amber-text); cursor: pointer; font-family: inherit; white-space: nowrap; }
+  .sil-btn { position: absolute; top: 8px; right: -2px; width: 26px; height: 26px; border-radius: 50%; border: none; background: none; color: var(--text3); font-size: 14px; cursor: pointer; font-family: inherit; line-height: 1; }
+  .sil-btn:active { background: var(--red-bg); color: var(--red-text); }
+  .sil-btn-sm { width: 22px; height: 22px; border-radius: 50%; border: none; background: none; color: var(--text3); font-size: 12px; cursor: pointer; font-family: inherit; flex-shrink: 0; }
+  .sil-btn-sm:active { background: var(--red-bg); color: var(--red-text); }
 
   /* AY SEÇİCİ */
   .ay-scroll { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 14px; scrollbar-width: none; }
@@ -567,12 +571,14 @@ function renderAidat() {
         ? `<button class="ode-btn done" disabled>✓ Alındı</button>`
         : `<button class="ode-btn" onclick="aidatOde(${a.id},'${ay}')">Tam ödeme</button>`;
       const kismiBtn = !tam ? `<button class="kismi-btn" onclick="openKismi(${a.id},'${ay}','${a.adi}')">Kısmi</button>` : '';
+      const silBtn = `<button class="sil-btn" onclick="aidatSil(${a.id},'${a.adi.replace(/'/g, "\\'")}')" title="Birimi sil">✕</button>`;
       html += `<div class="aidat-row">
         <div class="aidat-info">
           <div class="aidat-ad">${a.adi}</div>
           <div class="aidat-tutar">${fmt(a.tutar)} / ay &nbsp; ${badge}</div>
         </div>
         <div class="aidat-sag">${btn}${kismiBtn}</div>
+        ${silBtn}
       </div>`;
     });
   });
@@ -587,6 +593,14 @@ async function aidatOde(id, ay) {
   renderAidat(); renderOzet();
   const ok = await apiCall('aidat_ode', { id: a.id, ay, tutar: a.tutar });
   if (ok) toast(a.adi + ' — tam ödeme alındı');
+}
+
+async function aidatSil(id, ad) {
+  if (!confirm(ad + ' birimini ve tüm ödeme geçmişini silmek istediğine emin misin? Bu işlem geri alınamaz.')) return;
+  S.aidatlar = S.aidatlar.filter(x => x.id !== id);
+  renderAidat(); renderOzet();
+  const ok = await apiCall('aidat_sil', { id });
+  if (ok) toast(ad + ' silindi');
 }
 
 function openKismi(id, ay, ad) {
@@ -683,8 +697,16 @@ function renderHavuz() {
   document.getElementById('hv-ay-kisi').textContent = ayH.reduce((s,h)=>s+h.kisi,0).toLocaleString('tr-TR');
   document.getElementById('hv-ay-gelir').textContent = fmt(ayH.reduce((s,h)=>s+h.tutar,0));
   document.getElementById('hv-log').innerHTML = S.havuz.length
-    ? S.havuz.slice(0,20).map(h=>`<div class="log-item"><div><div class="li-name">${new Date(h.tarih).toLocaleDateString('tr-TR',{day:'numeric',month:'short'})}</div><div class="li-meta">${h.kisi} kişi · ${h.gt==='hafta-sonu'?'H.sonu':'H.içi'}${h.not?' · '+h.not:''}</div></div><div class="li-amt g">+${fmt(h.tutar)}</div></div>`).join('')
+    ? S.havuz.slice(0,20).map(h=>`<div class="log-item"><div><div class="li-name">${new Date(h.tarih).toLocaleDateString('tr-TR',{day:'numeric',month:'short'})}</div><div class="li-meta">${h.kisi} kişi · ${h.gt==='hafta-sonu'?'H.sonu':'H.içi'}${h.not?' · '+h.not:''}</div></div><div style="display:flex;align-items:center;gap:8px"><div class="li-amt g">+${fmt(h.tutar)}</div><button class="sil-btn-sm" onclick="havuzSil(${h.id})" title="Sil">✕</button></div></div>`).join('')
     : '<div class="empty">Henüz kayıt yok</div>';
+}
+
+async function havuzSil(id) {
+  if (!confirm('Bu havuz girişi kaydını silmek istediğine emin misin?')) return;
+  S.havuz = S.havuz.filter(x => x.id !== id);
+  renderHavuz(); renderOzet();
+  const ok = await apiCall('havuz_sil', { id });
+  if (ok) toast('Kayıt silindi');
 }
 
 // ── GİDER ──
@@ -709,8 +731,16 @@ function renderGider() {
   document.getElementById('gd-ay-val').textContent = fmt(ayG.reduce((s,g)=>s+g.tutar,0));
   document.getElementById('gd-sezon-val').textContent = fmt(S.giderler.reduce((s,g)=>s+g.tutar,0));
   document.getElementById('gd-log').innerHTML = S.giderler.length
-    ? S.giderler.slice(0,30).map(g=>`<div class="log-item"><div><div class="li-name">${g.aciklama||GD_LABEL[g.kat]} <span class="badge ba">${GD_LABEL[g.kat]}</span></div><div class="li-meta">${g.tarih}</div></div><div class="li-amt r">−${fmt(g.tutar)}</div></div>`).join('')
+    ? S.giderler.slice(0,30).map(g=>`<div class="log-item"><div><div class="li-name">${g.aciklama||GD_LABEL[g.kat]} <span class="badge ba">${GD_LABEL[g.kat]}</span></div><div class="li-meta">${g.tarih}</div></div><div style="display:flex;align-items:center;gap:8px"><div class="li-amt r">−${fmt(g.tutar)}</div><button class="sil-btn-sm" onclick="giderSil(${g.id})" title="Sil">✕</button></div></div>`).join('')
     : '<div class="empty">Henüz gider kaydı yok</div>';
+}
+
+async function giderSil(id) {
+  if (!confirm('Bu gider kaydını silmek istediğine emin misin?')) return;
+  S.giderler = S.giderler.filter(x => x.id !== id);
+  renderGider(); renderOzet();
+  const ok = await apiCall('gider_sil', { id });
+  if (ok) toast('Gider kaydı silindi');
 }
 
 // ── RAPOR ──
