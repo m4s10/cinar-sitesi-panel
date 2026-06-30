@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#1a1a2e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Çınar Sitesi Yönetim Paneli</title>
+<style>
+  :root {
+    --bg: #f5f6fa;
+    --surface: #ffffff;
+    --surface2: #f0f1f6;
+    --border: #e2e4ec;
+    --text: #1a1b2e;
+    --text2: #5a5f7a;
+    --text3: #9399b2;
+    --accent: #4361ee;
+    --accent-bg: #eef1ff;
+    --accent-text: #3451d1;
+    --green: #2ecc71;
+    --green-bg: #e8faf2;
+    --green-text: #1a9e52;
+    --red: #e74c3c;
+    --red-bg: #fdecea;
+    --red-text: #c0392b;
+    --amber: #f39c12;
+    --amber-bg: #fef9ec;
+    --amber-text: #b7770d;
+    --radius: 12px;
+    --radius-sm: 8px;
+    --shadow: 0 2px 12px rgba(0,0,0,0.07);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+  
+  /* TOP BAR */
+  .topbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
+  .topbar-title { font-size: 16px; font-weight: 700; color: var(--text); }
+  .topbar-sub { font-size: 11px; color: var(--text3); margin-top: 1px; }
+  .topbar-kasa { text-align: right; }
+  .topbar-kasa-label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: .04em; }
+  .topbar-kasa-val { font-size: 18px; font-weight: 700; color: var(--green-text); }
+
+  /* BOTTOM NAV */
+  .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface); border-top: 1px solid var(--border); display: flex; z-index: 100; padding-bottom: env(safe-area-inset-bottom); }
+  .nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 10px 4px 8px; background: none; border: none; color: var(--text3); font-size: 10px; font-family: inherit; cursor: pointer; gap: 4px; transition: color .15s; }
+  .nav-btn svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .nav-btn.on { color: var(--accent); }
+  .nav-btn.on svg { stroke: var(--accent); }
+
+  /* CONTENT */
+  .content { padding: 16px 16px 90px; max-width: 600px; margin: 0 auto; }
+  .sec { display: none; }
+  .sec.on { display: block; }
+
+  /* CARDS */
+  .card { background: var(--surface); border-radius: var(--radius); padding: 16px; margin-bottom: 12px; box-shadow: var(--shadow); }
+  .card-title { font-size: 11px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 14px; }
+
+  /* METRICS */
+  .metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 12px; }
+  .metrics-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 12px; }
+  .metric { background: var(--surface); border-radius: var(--radius-sm); padding: 14px 12px; box-shadow: var(--shadow); }
+  .m-label { font-size: 11px; color: var(--text3); margin-bottom: 6px; }
+  .m-val { font-size: 18px; font-weight: 700; color: var(--text); }
+  .m-val.g { color: var(--green-text); }
+  .m-val.r { color: var(--red-text); }
+  .m-val.b { color: var(--accent-text); }
+
+  /* NET BANNER */
+  .net-banner { border-radius: var(--radius); padding: 16px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+  .net-banner.pos { background: var(--green-bg); border: 1px solid #b8f0d5; }
+  .net-banner.neg { background: var(--red-bg); border: 1px solid #fbc8c3; }
+  .nb-label { font-size: 13px; font-weight: 600; }
+  .net-banner.pos .nb-label { color: var(--green-text); }
+  .net-banner.neg .nb-label { color: var(--red-text); }
+  .nb-val { font-size: 22px; font-weight: 800; }
+  .net-banner.pos .nb-val { color: var(--green-text); }
+  .net-banner.neg .nb-val { color: var(--red-text); }
+
+  /* FORM */
+  .frow { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+  .frow-1 { margin-bottom: 10px; }
+  .fg label { display: block; font-size: 12px; color: var(--text2); margin-bottom: 5px; font-weight: 500; }
+  .fg input, .fg select { width: 100%; height: 42px; padding: 0 12px; font-size: 15px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); background: var(--surface2); color: var(--text); font-family: inherit; -webkit-appearance: none; }
+  .fg input:focus, .fg select:focus { outline: none; border-color: var(--accent); background: var(--surface); }
+  .btn-p { width: 100%; height: 48px; background: var(--accent); color: #fff; border: none; border-radius: var(--radius-sm); font-size: 15px; font-weight: 600; cursor: pointer; font-family: inherit; margin-top: 10px; transition: opacity .15s; }
+  .btn-p:active { opacity: .85; }
+  .btn-s { width: 100%; height: 44px; background: var(--accent-bg); color: var(--accent-text); border: none; border-radius: var(--radius-sm); font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; }
+
+  /* LIST ITEMS */
+  .log-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); }
+  .log-item:last-child { border-bottom: none; }
+  .li-name { font-size: 14px; font-weight: 500; color: var(--text); }
+  .li-meta { font-size: 12px; color: var(--text3); margin-top: 2px; }
+  .li-amt { font-size: 15px; font-weight: 700; white-space: nowrap; margin-left: 12px; }
+  .li-amt.g { color: var(--green-text); }
+  .li-amt.r { color: var(--red-text); }
+
+  /* BADGES */
+  .badge { display: inline-block; padding: 3px 9px; border-radius: 99px; font-size: 11px; font-weight: 600; }
+  .bg { background: var(--green-bg); color: var(--green-text); }
+  .br { background: var(--red-bg); color: var(--red-text); }
+  .bb { background: var(--accent-bg); color: var(--accent-text); }
+  .ba { background: var(--amber-bg); color: var(--amber-text); }
+
+  /* PROGRESS */
+  .prog-wrap { margin-bottom: 8px; }
+  .prog-label { display: flex; justify-content: space-between; font-size: 12px; color: var(--text2); margin-bottom: 5px; font-weight: 500; }
+  .prog-bar { height: 7px; background: var(--surface2); border-radius: 99px; overflow: hidden; }
+  .prog-fill { height: 100%; background: var(--accent); border-radius: 99px; transition: width .4s; }
+  .prog-fill.green { background: var(--green); }
+  .prog-fill.red { background: var(--red); }
+
+  /* AIDAT TABLE */
+  .aidat-list { }
+  .aidat-cat { font-size: 10px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: .07em; padding: 10px 0 6px; border-bottom: 1px solid var(--border); }
+  .aidat-row { display: flex; align-items: center; gap: 10px; padding: 11px 0; border-bottom: 1px solid var(--border); }
+  .aidat-row:last-child { border-bottom: none; }
+  .aidat-info { flex: 1; }
+  .aidat-ad { font-size: 14px; font-weight: 500; color: var(--text); }
+  .aidat-tutar { font-size: 12px; color: var(--text3); margin-top: 1px; }
+  .aidat-sag { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+  .ode-btn { font-size: 12px; font-weight: 600; padding: 5px 12px; border-radius: 99px; border: 1.5px solid var(--green); background: none; color: var(--green-text); cursor: pointer; font-family: inherit; white-space: nowrap; }
+  .ode-btn:active { background: var(--green-bg); }
+  .ode-btn.done { background: var(--green-bg); border-color: var(--green-bg); color: var(--green-text); cursor: default; }
+  .kismi-btn { font-size: 11px; padding: 4px 10px; border-radius: 99px; border: 1.5px solid var(--amber); background: none; color: var(--amber-text); cursor: pointer; font-family: inherit; white-space: nowrap; }
+
+  /* AY SEÇİCİ */
+  .ay-scroll { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 14px; scrollbar-width: none; }
+  .ay-scroll::-webkit-scrollbar { display: none; }
+  .ay-chip { flex-shrink: 0; padding: 7px 14px; border-radius: 99px; font-size: 13px; font-weight: 500; border: 1.5px solid var(--border); background: var(--surface); color: var(--text2); cursor: pointer; font-family: inherit; }
+  .ay-chip.on { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  /* HAVUZ TABLE */
+  .hv-table { width: 100%; border-collapse: collapse; }
+  .hv-table th { font-size: 11px; color: var(--text3); text-align: left; padding: 6px 0; border-bottom: 1px solid var(--border); font-weight: 600; }
+  .hv-table td { font-size: 13px; padding: 9px 0; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  .hv-table tr:last-child td { border-bottom: none; }
+  .hv-table td input[type=number] { width: 58px; height: 34px; text-align: center; font-size: 15px; font-weight: 600; border: 1.5px solid var(--border); border-radius: var(--radius-sm); background: var(--surface2); color: var(--text); font-family: inherit; padding: 0; }
+  .hv-total td { background: var(--accent-bg); color: var(--accent-text); font-weight: 700; padding: 10px 6px; }
+  .hv-total td:first-child { border-radius: var(--radius-sm) 0 0 var(--radius-sm); }
+  .hv-total td:last-child { border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
+
+  /* RAPOR */
+  .rapor-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); }
+  .rapor-row:last-child { border-bottom: none; }
+
+  /* KISMİ ÖDEME MODAL */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 200; align-items: flex-end; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--surface); border-radius: var(--radius) var(--radius) 0 0; padding: 20px 16px; width: 100%; padding-bottom: calc(env(safe-area-inset-bottom) + 20px); }
+  .modal-title { font-size: 16px; font-weight: 700; margin-bottom: 16px; }
+  .modal-close { float: right; background: none; border: none; font-size: 22px; color: var(--text3); cursor: pointer; line-height: 1; }
+
+  /* TOAST */
+  .toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); background: #1a1b2e; color: #fff; border-radius: var(--radius-sm); padding: 12px 20px; font-size: 14px; font-weight: 500; opacity: 0; transition: opacity .2s; pointer-events: none; white-space: nowrap; z-index: 999; }
+  .toast.show { opacity: 1; }
+
+  /* EMPTY */
+  .empty { text-align: center; padding: 24px; color: var(--text3); font-size: 14px; }
+
+  /* SCROLL LIST */
+  .scroll-list { max-height: 300px; overflow-y: auto; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div>
+    <div class="topbar-title">🏢 Çınar Sitesi</div>
+    <div class="topbar-sub" id="top-tarih"></div>
+  </div>
+  <div class="topbar-kasa">
+    <div class="topbar-kasa-label">Bu ay tahsilat</div>
+    <div class="topbar-kasa-val" id="top-kasa">—</div>
+  </div>
+</div>
+
+<div class="content">
+
+  <!-- ÖZET -->
+  <div id="sec-ozet" class="sec on">
+    <div class="net-banner pos" id="net-banner">
+      <div>
+        <div class="nb-label" id="net-label">Net kasa</div>
+        <div style="font-size:12px;color:var(--green-text);margin-top:2px" id="net-ay-label"></div>
+      </div>
+      <div class="nb-val" id="net-val">—</div>
+    </div>
+    <div class="metrics">
+      <div class="metric"><div class="m-label">Toplam gelir</div><div class="m-val g" id="oz-gelir">—</div></div>
+      <div class="metric"><div class="m-label">Gider</div><div class="m-val r" id="oz-gider">—</div></div>
+      <div class="metric"><div class="m-label">Havuz</div><div class="m-val b" id="oz-havuz">—</div></div>
+    </div>
+    <div class="metrics-2">
+      <div class="metric"><div class="m-label">Aidat tahsilatı</div><div class="m-val g" id="oz-aidat">—</div></div>
+      <div class="metric"><div class="m-label">Bekleyen aidat</div><div class="m-val r" id="oz-bekleyen">—</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Tahsilat durumu</div>
+      <div class="prog-wrap">
+        <div class="prog-label"><span>Aidat tahsilatı</span><span id="aidat-pct">0%</span></div>
+        <div class="prog-bar"><div class="prog-fill green" id="aidat-bar" style="width:0%"></div></div>
+      </div>
+      <div style="margin-top:14px;" id="blok-ozet"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Son hareketler</div>
+      <div id="son-hareketler"><div class="empty">Kayıt eklendikçe burada görünecek</div></div>
+    </div>
+  </div>
+
+  <!-- AİDAT -->
+  <div id="sec-aidat" class="sec">
+    <div class="ay-scroll" id="ay-scroll"></div>
+    <div class="card" style="padding:16px">
+      <div id="aidat-liste"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Yeni birim ekle</div>
+      <div class="frow">
+        <div class="fg"><label>Birim adı</label><input type="text" id="yb-ad" placeholder="Örnek: Berber"></div>
+        <div class="fg"><label>Kategori</label>
+          <select id="yb-kat">
+            <option value="ticaret">Ticaret merkezi</option>
+            <option value="blok">Blok</option>
+            <option value="diger">Diğer</option>
+          </select>
+        </div>
+      </div>
+      <div class="frow">
+        <div class="fg"><label>Aylık aidat (TL)</label><input type="number" id="yb-tutar" placeholder="0"></div>
+        <div class="fg"><label>Not</label><input type="text" id="yb-not" placeholder="Opsiyonel"></div>
+      </div>
+      <button class="btn-p" onclick="yeniBirimEkle()">Birim ekle</button>
+    </div>
+  </div>
+
+  <!-- HAVUZ -->
+  <div id="sec-havuz" class="sec">
+    <div class="metrics-2" style="margin-bottom:12px">
+      <div class="metric"><div class="m-label">Bu ay kişi</div><div class="m-val b" id="hv-ay-kisi">0</div></div>
+      <div class="metric"><div class="m-label">Bu ay gelir</div><div class="m-val g" id="hv-ay-gelir">0 TL</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Günlük giriş kaydet</div>
+      <div class="frow">
+        <div class="fg"><label>Tarih</label><input type="date" id="hv-tarih"></div>
+        <div class="fg"><label>Gün tipi</label>
+          <select id="hv-gt">
+            <option value="hafta-ici">Hafta içi</option>
+            <option value="hafta-sonu">Hafta sonu</option>
+          </select>
+        </div>
+      </div>
+      <table class="hv-table" style="margin-top:4px">
+        <thead><tr><th>Kategori</th><th>Ücret</th><th>Kişi</th><th>Tutar</th></tr></thead>
+        <tbody id="hv-tbody"></tbody>
+        <tfoot><tr class="hv-total"><td colspan="2">Toplam</td><td id="hv-tkisi">0</td><td id="hv-ttutar">0 TL</td></tr></tfoot>
+      </table>
+      <div class="frow-1" style="margin-top:10px"><div class="fg"><label>Not (opsiyonel)</label><input type="text" id="hv-not" placeholder="Kapalı, yoğun gün vs."></div></div>
+      <button class="btn-p" onclick="havuzKaydet()">Günü kaydet</button>
+    </div>
+    <div class="card">
+      <div class="card-title">Son kayıtlar</div>
+      <div class="scroll-list" id="hv-log"><div class="empty">Henüz kayıt yok</div></div>
+    </div>
+  </div>
+
+  <!-- GİDER -->
+  <div id="sec-gider" class="sec">
+    <div class="metrics-2">
+      <div class="metric"><div class="m-label">Bu ay gider</div><div class="m-val r" id="gd-ay-val">0 TL</div></div>
+      <div class="metric"><div class="m-label">Sezon toplamı</div><div class="m-val r" id="gd-sezon-val">0 TL</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Gider ekle</div>
+      <div class="frow">
+        <div class="fg"><label>Tarih</label><input type="date" id="gd-tarih"></div>
+        <div class="fg"><label>Kategori</label>
+          <select id="gd-kat">
+            <option value="personel">Personel ücreti</option>
+            <option value="kimyasal">Kimyasal / bakım</option>
+            <option value="ekipman">Ekipman alımı</option>
+            <option value="elektrik">Elektrik / su</option>
+            <option value="bakim">Genel bakım / tamir</option>
+            <option value="diger">Diğer</option>
+          </select>
+        </div>
+      </div>
+      <div class="frow">
+        <div class="fg"><label>Tutar (TL)</label><input type="number" id="gd-tutar" placeholder="0"></div>
+        <div class="fg"><label>Açıklama</label><input type="text" id="gd-aciklama" placeholder="Tedarikçi, not vs."></div>
+      </div>
+      <button class="btn-p" onclick="giderKaydet()">Gideri kaydet</button>
+    </div>
+    <div class="card">
+      <div class="card-title">Gider geçmişi</div>
+      <div class="scroll-list" id="gd-log"><div class="empty">Henüz gider kaydı yok</div></div>
+    </div>
+  </div>
+
+  <!-- RAPOR -->
+  <div id="sec-rapor" class="sec">
+    <div class="card">
+      <div class="card-title">Aylık özet</div>
+      <div id="rapor-aylik"><div class="empty">Kayıt eklendikçe burada görünecek</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Gider dağılımı</div>
+      <div id="rapor-gider"><div class="empty">Gider eklendikçe burada görünecek</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Aidat tahsilatı — birim bazlı</div>
+      <div id="rapor-aidat"><div class="empty">Aidat işlendikçe burada görünecek</div></div>
+    </div>
+  </div>
+
+</div><!-- /content -->
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+  <button class="nav-btn on" onclick="goTab('ozet',this)">
+    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+    Özet
+  </button>
+  <button class="nav-btn" onclick="goTab('aidat',this)">
+    <svg viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+    Aidat
+  </button>
+  <button class="nav-btn" onclick="goTab('havuz',this)">
+    <svg viewBox="0 0 24 24"><path d="M2 12c1.5-2 3-3 4.5-3s3 2 4.5 2 3-3 4.5-3 3 1 4.5 3"/><path d="M2 18c1.5-2 3-3 4.5-3s3 2 4.5 2 3-3 4.5-3 3 1 4.5 3"/><path d="M9 6l3-4 3 4"/></svg>
+    Havuz
+  </button>
+  <button class="nav-btn" onclick="goTab('gider',this)">
+    <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    Gider
+  </button>
+  <button class="nav-btn" onclick="goTab('rapor',this)">
+    <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+    Rapor
+  </button>
+</nav>
+
+<!-- KISMİ ÖDEME MODAL -->
+<div class="modal-overlay" id="kismi-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <div class="modal-title" id="modal-baslik">Kısmi ödeme</div>
+    <div class="fg" style="margin-bottom:14px">
+      <label>Ödenen tutar (TL)</label>
+      <input type="number" id="kismi-tutar" placeholder="0" style="font-size:22px;font-weight:700;height:52px">
+    </div>
+    <div class="fg" style="margin-bottom:14px">
+      <label>Not (opsiyonel)</label>
+      <input type="text" id="kismi-not" placeholder="EFT tarihi, açıklama vs.">
+    </div>
+    <button class="btn-p" onclick="kismiOdemeKaydet()">Ödemeyi kaydet</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const AYLAR = ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
+const UCRETLER = {
+  'hafta-ici':  { 'site-yt':150, 'site-co':75,  'mis-yt':350, 'mis-co':250 },
+  'hafta-sonu': { 'site-yt':150, 'site-co':75,  'mis-yt':600, 'mis-co':250 }
+};
+const HV_KATS = [
+  {k:'site-yt', l:'Site sakini (yetişkin)'},
+  {k:'site-co', l:'Site sakini (çocuk 7-12)'},
+  {k:'mis-yt',  l:'Misafir (yetişkin)'},
+  {k:'mis-co',  l:'Misafir (çocuk 7-12)'}
+];
+const GD_LABEL = {personel:'Personel', kimyasal:'Kimyasal', ekipman:'Ekipman', elektrik:'Elektrik/Su', bakim:'Bakım/Tamir', diger:'Diğer'};
+
+const BASLANGIC_AIDATLAR = [];
+
+let S = { aidatlar:[], havuz:[], giderler:[], secilenAy:null };
+let kismiHedefId = null;
+let kismiHedefAy = null;
+
+function load() {
+  try { const x = localStorage.getItem('cinar_v3'); if (x) S = JSON.parse(x); } catch(e) {}
+  if (!S.aidatlar || !S.aidatlar.length) S.aidatlar = JSON.parse(JSON.stringify(BASLANGIC_AIDATLAR));
+  if (!S.havuz) S.havuz = [];
+  if (!S.giderler) S.giderler = [];
+  const now = new Date();
+  if (!S.secilenAy) S.secilenAy = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+}
+function save() { try { localStorage.setItem('cinar_v3', JSON.stringify(S)); } catch(e) {} }
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+function fmt(n) { return Number(n).toLocaleString('tr-TR') + ' TL'; }
+function ayLabel(k) { const [y,m] = k.split('-'); return AYLAR[parseInt(m)-1] + ' ' + y; }
+
+function goTab(tab, btn) {
+  document.querySelectorAll('.sec').forEach(s => s.classList.remove('on'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('on'));
+  document.getElementById('sec-' + tab).classList.add('on');
+  btn.classList.add('on');
+  if (tab==='ozet') renderOzet();
+  if (tab==='aidat') renderAidat();
+  if (tab==='havuz') renderHavuz();
+  if (tab==='gider') renderGider();
+  if (tab==='rapor') renderRapor();
+}
+
+function initHeader() {
+  const now = new Date();
+  document.getElementById('top-tarih').textContent = now.toLocaleDateString('tr-TR', {weekday:'long',day:'numeric',month:'long'});
+  document.getElementById('hv-tarih').value = now.toISOString().split('T')[0];
+  document.getElementById('gd-tarih').value = now.toISOString().split('T')[0];
+  const g = now.getDay();
+  document.getElementById('hv-gt').value = (g===0||g===6) ? 'hafta-sonu' : 'hafta-ici';
+}
+
+// ── AY SEÇİCİ ──
+function getAylar() {
+  const set = new Set();
+  const now = new Date();
+  for (let i=0; i<12; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+    set.add(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'));
+  }
+  S.aidatlar.forEach(a => Object.keys(a.odenenTutar||{}).forEach(k => set.add(k)));
+  S.havuz.forEach(h => h.tarih && set.add(h.tarih.slice(0,7)));
+  return [...set].sort().reverse();
+}
+
+function renderAyScroll() {
+  const aylar = getAylar().slice(0,12);
+  document.getElementById('ay-scroll').innerHTML = aylar.map(a =>
+    `<button class="ay-chip${a===S.secilenAy?' on':''}" onclick="secAy('${a}',this)">${ayLabel(a)}</button>`
+  ).join('');
+}
+function secAy(ay, btn) {
+  S.secilenAy = ay;
+  document.querySelectorAll('.ay-chip').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  renderAidat();
+}
+
+// ── ÖZET ──
+function aidatAyToplam(ay) {
+  return S.aidatlar.reduce((s,a) => s + ((a.odenenTutar&&a.odenenTutar[ay])||0), 0);
+}
+function aidatBeklenen() {
+  return S.aidatlar.reduce((s,a) => s + a.tutar, 0);
+}
+
+function renderOzet() {
+  const ay = S.secilenAy;
+  const aidatGelir = aidatAyToplam(ay);
+  const aidatBek = aidatBeklenen();
+  const havuzGelir = S.havuz.filter(h=>h.tarih&&h.tarih.startsWith(ay)).reduce((s,h)=>s+h.tutar,0);
+  const gider = S.giderler.filter(g=>g.tarih&&g.tarih.startsWith(ay)).reduce((s,g)=>s+g.tutar,0);
+  const toplamGelir = aidatGelir + havuzGelir;
+  const net = toplamGelir - gider;
+  const pct = aidatBek > 0 ? Math.min(100, Math.round(aidatGelir/aidatBek*100)) : 0;
+
+  document.getElementById('oz-gelir').textContent = fmt(toplamGelir);
+  document.getElementById('oz-gider').textContent = fmt(gider);
+  document.getElementById('oz-havuz').textContent = fmt(havuzGelir);
+  document.getElementById('oz-aidat').textContent = fmt(aidatGelir);
+  document.getElementById('oz-bekleyen').textContent = fmt(Math.max(0, aidatBek - aidatGelir));
+  document.getElementById('net-val').textContent = fmt(Math.abs(net));
+  document.getElementById('net-ay-label').textContent = ayLabel(ay);
+  document.getElementById('aidat-pct').textContent = pct + '%';
+  document.getElementById('aidat-bar').style.width = pct + '%';
+  document.getElementById('top-kasa').textContent = fmt(toplamGelir);
+
+  const banner = document.getElementById('net-banner');
+  banner.className = 'net-banner ' + (net >= 0 ? 'pos' : 'neg');
+  document.getElementById('net-label').textContent = net >= 0 ? 'Net kasa' : 'Açık';
+
+  document.getElementById('blok-ozet').innerHTML = S.aidatlar.map(a => {
+    const od = (a.odenenTutar&&a.odenenTutar[ay])||0;
+    const tam = od >= a.tutar;
+    const kismi = od > 0 && !tam;
+    const badge = tam ? '<span class="badge bg">Tam</span>' : kismi ? '<span class="badge ba">Kısmi</span>' : '<span class="badge br">Bekliyor</span>';
+    return `<div class="log-item"><div><div class="li-name">${a.adi} ${badge}</div></div><div class="li-amt ${tam?'g':kismi?'':' r'}">${od>0?fmt(od):'—'}</div></div>`;
+  }).join('');
+
+  const hareketler = [
+    ...S.havuz.map(h=>({tarih:h.tarih,ad:'Havuz girişi',meta:h.kisi+' kişi',tutar:h.tutar,tip:'g'})),
+    ...S.giderler.map(g=>({tarih:g.tarih,ad:g.aciklama||GD_LABEL[g.kat],meta:GD_LABEL[g.kat],tutar:g.tutar,tip:'r'}))
+  ].sort((a,b)=>b.tarih.localeCompare(a.tarih)).slice(0,10);
+
+  document.getElementById('son-hareketler').innerHTML = hareketler.length ?
+    hareketler.map(h=>`<div class="log-item"><div><div class="li-name">${h.ad}</div><div class="li-meta">${h.tarih} · ${h.meta}</div></div><div class="li-amt ${h.tip}">${h.tip==='g'?'+':'−'}${fmt(h.tutar)}</div></div>`).join('')
+    : '<div class="empty">Kayıt eklendikçe burada görünecek</div>';
+}
+
+// ── AİDAT ──
+function renderAidat() {
+  renderAyScroll();
+  const ay = S.secilenAy;
+  const catLabels = {ticaret:'Ticaret Merkezi', blok:'Bloklar', diger:'Diğer Gelirler'};
+  let html = '';
+  ['ticaret','blok','diger'].forEach(cat => {
+    const items = S.aidatlar.filter(a=>a.kat===cat);
+    if (!items.length) return;
+    html += `<div class="aidat-cat">${catLabels[cat]}</div>`;
+    items.forEach(a => {
+      const od = (a.odenenTutar&&a.odenenTutar[ay])||0;
+      const tam = od >= a.tutar;
+      const kismi = od > 0 && !tam;
+      const badge = tam ? '<span class="badge bg">Ödendi</span>' : kismi ? `<span class="badge ba">Kısmi — ${fmt(od)}</span>` : '<span class="badge br">Bekliyor</span>';
+      const btn = tam
+        ? `<button class="ode-btn done" disabled>✓ Alındı</button>`
+        : `<button class="ode-btn" onclick="aidatOde(${a.id},'${ay}')">Tam ödeme</button>`;
+      const kismiBtn = !tam ? `<button class="kismi-btn" onclick="openKismi(${a.id},'${ay}','${a.adi}')">Kısmi</button>` : '';
+      html += `<div class="aidat-row">
+        <div class="aidat-info">
+          <div class="aidat-ad">${a.adi}</div>
+          <div class="aidat-tutar">${fmt(a.tutar)} / ay &nbsp; ${badge}</div>
+        </div>
+        <div class="aidat-sag">${btn}${kismiBtn}</div>
+      </div>`;
+    });
+  });
+  document.getElementById('aidat-liste').innerHTML = html || '<div class="empty">Henüz birim eklenmedi.<br>Aşağıdan blok veya işyeri ekleyerek başla.</div>';
+}
+
+function aidatOde(id, ay) {
+  const a = S.aidatlar.find(x=>x.id===id);
+  if (!a) return;
+  if (!a.odenenTutar) a.odenenTutar = {};
+  a.odenenTutar[ay] = a.tutar;
+  save(); renderAidat(); renderOzet();
+  toast(a.adi + ' — tam ödeme alındı');
+}
+
+function openKismi(id, ay, ad) {
+  kismiHedefId = id; kismiHedefAy = ay;
+  document.getElementById('modal-baslik').textContent = ad + ' — kısmi ödeme';
+  document.getElementById('kismi-tutar').value = '';
+  document.getElementById('kismi-not').value = '';
+  document.getElementById('kismi-modal').classList.add('open');
+  setTimeout(() => document.getElementById('kismi-tutar').focus(), 100);
+}
+function closeModal() { document.getElementById('kismi-modal').classList.remove('open'); }
+
+function kismiOdemeKaydet() {
+  const tutar = parseFloat(document.getElementById('kismi-tutar').value);
+  if (!tutar || tutar <= 0) { toast('Tutar gir'); return; }
+  const a = S.aidatlar.find(x=>x.id===kismiHedefId);
+  if (!a) return;
+  if (!a.odenenTutar) a.odenenTutar = {};
+  const mevcut = a.odenenTutar[kismiHedefAy] || 0;
+  a.odenenTutar[kismiHedefAy] = mevcut + tutar;
+  save(); closeModal(); renderAidat(); renderOzet();
+  toast(a.adi + ' — ' + fmt(tutar) + ' eklendi');
+}
+
+function yeniBirimEkle() {
+  const ad = document.getElementById('yb-ad').value.trim();
+  const kat = document.getElementById('yb-kat').value;
+  const tutar = parseFloat(document.getElementById('yb-tutar').value)||0;
+  if (!ad || tutar <= 0) { toast('Ad ve tutar zorunlu'); return; }
+  S.aidatlar.push({id:Date.now(), adi:ad, kat, tutar, odenenTutar:{}});
+  save(); renderAidat();
+  document.getElementById('yb-ad').value = '';
+  document.getElementById('yb-tutar').value = '';
+  toast(ad + ' eklendi');
+}
+
+// ── HAVUZ ──
+function buildHvTable() {
+  const gt = document.getElementById('hv-gt').value;
+  document.getElementById('hv-tbody').innerHTML = HV_KATS.map(kat => {
+    const u = UCRETLER[gt][kat.k];
+    return `<tr>
+      <td style="font-size:12px">${kat.l}</td>
+      <td style="color:var(--text3);font-size:12px">${u.toLocaleString('tr-TR')} TL</td>
+      <td><input type="number" min="0" max="999" value="0" id="hk-${kat.k}" oninput="updateHvTop()"></td>
+      <td id="hs-${kat.k}" style="font-size:12px;color:var(--text3)">—</td>
+    </tr>`;
+  }).join('');
+  updateHvTop();
+}
+function updateHvTop() {
+  const gt = document.getElementById('hv-gt').value;
+  let tk=0, tt=0;
+  HV_KATS.forEach(kat => {
+    const k = parseInt(document.getElementById('hk-'+kat.k).value)||0;
+    const u = UCRETLER[gt][kat.k];
+    const sat = k * u;
+    document.getElementById('hs-'+kat.k).textContent = sat > 0 ? fmt(sat) : '—';
+    tk += k; tt += sat;
+  });
+  document.getElementById('hv-tkisi').textContent = tk + ' kişi';
+  document.getElementById('hv-ttutar').textContent = fmt(tt);
+}
+document.getElementById('hv-gt').addEventListener('change', buildHvTable);
+
+function havuzKaydet() {
+  const tarih = document.getElementById('hv-tarih').value;
+  if (!tarih) { toast('Tarih seç'); return; }
+  const gt = document.getElementById('hv-gt').value;
+  let tk=0, tt=0;
+  HV_KATS.forEach(kat => {
+    const k = parseInt(document.getElementById('hk-'+kat.k).value)||0;
+    tk += k; tt += k * UCRETLER[gt][kat.k];
+  });
+  if (tk === 0) { toast('En az 1 kişi gir'); return; }
+  S.havuz.unshift({id:Date.now(), tarih, gt, kisi:tk, tutar:tt, not:document.getElementById('hv-not').value});
+  save(); renderHavuz(); renderOzet();
+  HV_KATS.forEach(kat => { document.getElementById('hk-'+kat.k).value = 0; });
+  updateHvTop();
+  document.getElementById('hv-not').value = '';
+  toast('Kaydedildi — ' + fmt(tt));
+}
+
+function renderHavuz() {
+  const ay = S.secilenAy;
+  const ayH = S.havuz.filter(h=>h.tarih&&h.tarih.startsWith(ay));
+  document.getElementById('hv-ay-kisi').textContent = ayH.reduce((s,h)=>s+h.kisi,0).toLocaleString('tr-TR');
+  document.getElementById('hv-ay-gelir').textContent = fmt(ayH.reduce((s,h)=>s+h.tutar,0));
+  document.getElementById('hv-log').innerHTML = S.havuz.length
+    ? S.havuz.slice(0,20).map(h=>`<div class="log-item"><div><div class="li-name">${new Date(h.tarih).toLocaleDateString('tr-TR',{day:'numeric',month:'short'})}</div><div class="li-meta">${h.kisi} kişi · ${h.gt==='hafta-sonu'?'H.sonu':'H.içi'}${h.not?' · '+h.not:''}</div></div><div class="li-amt g">+${fmt(h.tutar)}</div></div>`).join('')
+    : '<div class="empty">Henüz kayıt yok</div>';
+}
+
+// ── GİDER ──
+function giderKaydet() {
+  const tarih = document.getElementById('gd-tarih').value;
+  const kat = document.getElementById('gd-kat').value;
+  const tutar = parseFloat(document.getElementById('gd-tutar').value)||0;
+  const aciklama = document.getElementById('gd-aciklama').value;
+  if (!tarih || tutar <= 0) { toast('Tarih ve tutar zorunlu'); return; }
+  S.giderler.unshift({id:Date.now(), tarih, kat, tutar, aciklama});
+  save(); renderGider(); renderOzet();
+  document.getElementById('gd-tutar').value = '';
+  document.getElementById('gd-aciklama').value = '';
+  toast('Gider kaydedildi — ' + fmt(tutar));
+}
+
+function renderGider() {
+  const ay = S.secilenAy;
+  const ayG = S.giderler.filter(g=>g.tarih&&g.tarih.startsWith(ay));
+  document.getElementById('gd-ay-val').textContent = fmt(ayG.reduce((s,g)=>s+g.tutar,0));
+  document.getElementById('gd-sezon-val').textContent = fmt(S.giderler.reduce((s,g)=>s+g.tutar,0));
+  document.getElementById('gd-log').innerHTML = S.giderler.length
+    ? S.giderler.slice(0,30).map(g=>`<div class="log-item"><div><div class="li-name">${g.aciklama||GD_LABEL[g.kat]} <span class="badge ba">${GD_LABEL[g.kat]}</span></div><div class="li-meta">${g.tarih}</div></div><div class="li-amt r">−${fmt(g.tutar)}</div></div>`).join('')
+    : '<div class="empty">Henüz gider kaydı yok</div>';
+}
+
+// ── RAPOR ──
+function renderRapor() {
+  const aylar = getAylar().slice(0,6).reverse();
+  document.getElementById('rapor-aylik').innerHTML = aylar.length
+    ? aylar.map(ay => {
+        const aidat = aidatAyToplam(ay);
+        const havuz = S.havuz.filter(h=>h.tarih&&h.tarih.startsWith(ay)).reduce((s,h)=>s+h.tutar,0);
+        const gider = S.giderler.filter(g=>g.tarih&&g.tarih.startsWith(ay)).reduce((s,g)=>s+g.tutar,0);
+        const net = aidat + havuz - gider;
+        return `<div class="rapor-row"><div><div class="li-name">${ayLabel(ay)}</div><div class="li-meta">Aidat ${fmt(aidat)} · Havuz ${fmt(havuz)} · Gider ${fmt(gider)}</div></div><div class="li-amt ${net>=0?'g':'r'}">${net>=0?'+':'−'}${fmt(Math.abs(net))}</div></div>`;
+      }).join('')
+    : '<div class="empty">Kayıt eklendikçe burada görünecek</div>';
+
+  const giderMap = {};
+  S.giderler.forEach(g => { if(!giderMap[g.kat]) giderMap[g.kat]=0; giderMap[g.kat]+=g.tutar; });
+  const katlar = Object.keys(giderMap).sort((a,b)=>giderMap[b]-giderMap[a]);
+  const maxG = katlar.length ? Math.max(...Object.values(giderMap)) : 1;
+  document.getElementById('rapor-gider').innerHTML = katlar.length
+    ? katlar.map(k=>`<div class="prog-wrap"><div class="prog-label"><span>${GD_LABEL[k]}</span><span style="color:var(--red-text);font-weight:600">${fmt(giderMap[k])}</span></div><div class="prog-bar"><div class="prog-fill red" style="width:${Math.round(giderMap[k]/maxG*100)}%"></div></div></div>`).join('')
+    : '<div class="empty">Gider eklendikçe burada görünecek</div>';
+
+  const maxA = S.aidatlar.length ? Math.max(...S.aidatlar.map(a=>a.tutar)) : 1;
+  document.getElementById('rapor-aidat').innerHTML = S.aidatlar.map(a => {
+    const od = Object.values(a.odenenTutar||{}).reduce((x,y)=>x+y,0);
+    const pct = Math.min(100, Math.round(od/Math.max(a.tutar,1)*100));
+    return `<div class="prog-wrap"><div class="prog-label"><span>${a.adi}</span><span style="font-weight:600">${fmt(od)}</span></div><div class="prog-bar"><div class="prog-fill" style="width:${pct}%"></div></div></div>`;
+  }).join('');
+}
+
+// ── INIT ──
+load();
+initHeader();
+buildHvTable();
+renderOzet();
+</script>
+</body>
+</html>
