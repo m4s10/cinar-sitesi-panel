@@ -396,7 +396,7 @@ async function load() {
     const res = await fetch(API_URL);
     const data = await res.json();
     S.aidatlar = (data.aidatlar || []).map(a => ({
-      id: a.id, adi: a.adi, kat: a.kat, tutar: Number(a.tutar), odenenTutar: a.odenenTutar || {}
+      id: a.id, adi: String(a.adi), kat: a.kat, tutar: Number(a.tutar), odenenTutar: a.odenenTutar || {}
     }));
     S.havuz = (data.havuz || []).map(h => ({
       id: h.id, tarih: h.tarih, gt: h.gt, kisi: Number(h.kisi), tutar: Number(h.tutar), not: h.not || ''
@@ -571,7 +571,7 @@ function renderAidat() {
         ? `<button class="ode-btn done" disabled>✓ Alındı</button>`
         : `<button class="ode-btn" onclick="aidatOde(${a.id},'${ay}')">Tam ödeme</button>`;
       const kismiBtn = !tam ? `<button class="kismi-btn" onclick="openKismi(${a.id},'${ay}','${a.adi}')">Kısmi</button>` : '';
-      const silBtn = `<button class="sil-btn" onclick="aidatSil(${a.id},'${a.adi.replace(/'/g, "\\'")}')" title="Birimi sil">✕</button>`;
+      const silBtn = `<button class="sil-btn" onclick="aidatSil(${a.id},'${String(a.adi).replace(/'/g, "\\'")}')" title="Birimi sil">✕</button>`;
       html += `<div class="aidat-row">
         <div class="aidat-info">
           <div class="aidat-ad">${a.adi}</div>
